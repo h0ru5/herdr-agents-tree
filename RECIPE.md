@@ -24,7 +24,7 @@ When an agent reports OSC 7501 `progress` (0 to 100) while working or blocked, i
 - Waiting subagent: one that is waiting on its own subagent drops out of Claude Code's records. The mod keeps it as an idle row (a 7px ring), named from its `meta.json` description, while any of its descendants is still listed. Without that row, the child would jump up to the terminal.
 - Finished subagents disappear when Claude Code removes their record.
 - A subagent's status counts toward its agent's urgency the same way `hc run` sub-agents do, so the folded count and the priority sections reflect it.
-- Clicking a subagent row does nothing: there is no terminal to peek at. Clicking the agent row, folding with the chevron or the agent icon, pinning and sorting all work as in the shipped mod.
+- Clicking a subagent row focuses the pane of the agent that runs it; it has no terminal of its own to peek at. Opening that subagent's own view stays inside Claude Code (its agent list under the prompt). Clicking the agent row, folding with the chevron or the agent icon, pinning and sorting all work as in the shipped mod.
 - The list refreshes about once a second.
 - Agents on another machine (`ai-box/t3`) get their subagent rows too; the lookup runs on that machine.
 
@@ -34,7 +34,7 @@ When an agent reports OSC 7501 `progress` (0 to 100) while working or blocked, i
 - Rows: `terminals()` returns each terminal's `records` (`{ "<agentId>": { app, state, title } }`) and `foreground` (`{ pid, argv, cwd }`). `poll()` turns every record into a row `{ address: "<terminal>#<agentId>", name, status, rec: true, parent }`.
 - Progress: `terminals()[].report` is the root 7501 record (`{ app, state, msg, progress }`). `progress(t, report)` returns the bar, or null when there is no numeric `progress` or the state is not working or blocked.
 - Parents: on the first sight of an unknown agent id, `loadMeta()` runs `exec("sh", ["-c", META, "sh", pid], { on: machine })`. `META` reads `sessionId` from `~/.claude/sessions/<pid>.json`, then prints every `~/.claude/projects/*/<sessionId>/subagents/agent-<id>.meta.json` with `grep -H .`. The mod keeps `description` and `parentAgentId` per id. `on` is the address prefix before `/`, or null for this machine.
-- `tree(all, addr)` returns the live `hc run` children of `addr` plus the record rows whose `parent` is `addr`, depth first. `subRow()` skips `on_click` for rows with `rec: true`.
+- `tree(all, addr)` returns the live `hc run` children of `addr` plus the record rows whose `parent` is `addr`, depth first. `subRow()` runs `pane.focus {terminal: <agent address>}` for rows with `rec: true` and `terminal.peek` for the rest.
 - Loop: `cx.spawn` runs `poll()`, `cx.notify()`, `cx.sleep(1000)` forever. The shipped 30 s `cx.timer` stays for the "since" times.
 - Layout: a clone of `main` (`herdr-app do layout.clone '{"name":"main","as":"main-tree"}'`) with the `agents` block's `content.mod` set to `agents-tree`.
 
@@ -54,4 +54,4 @@ When an agent reports OSC 7501 `progress` (0 to 100) while working or blocked, i
 - `hc run --bg --rm sh -c 'printf "\033]7501;state=working:progress=40:app=test\007"; sleep 25'` from an agent terminal: the new sub-row shows a bar 40% full and `40%`.
 - Have that subagent start its own subagent and wait for it: the first one stays as an idle-ring row and the second sits one level below it.
 - A Claude Code session on a remote machine shows its subagent rows under its agent.
-- Clicking a subagent row opens nothing; clicking the agent row still focuses its pane.
+- With another pane focused, clicking a subagent row focuses its agent's pane.
