@@ -16,6 +16,8 @@ The Agents block of the sidebar, as in the shipped mod: an "Agents" header with 
 
 Under each agent row (30px high), its subagents appear as sub-rows: 26px high, 12.5px text, indented 39px, with tree lines (1.5px, theme `input` color) drawn the same way the shipped mod draws `hc run` sub-agents. A sub-row shows the subagent's title (the Agent tool's description) in the muted text color and its status on the right. A subagent started by another subagent sits one level deeper, under its parent.
 
+When an agent reports OSC 7501 `progress` (0 to 100) while working or blocked, its row shows a 24x3px bar (track in the theme `input` color, fill in `working`) and the value as `40%` in 10.5px dim text, left of the fold chevron. `hc run` sub-agent rows show it the same way, 6px left of their status. Claude Code sends `progress` only for the main session, from its task list (done tasks / all tasks), and never for subagent records.
+
 ## How it behaves
 
 - Working subagent: the spinning `working` spinner (12px, one turn per 900ms).
@@ -30,6 +32,7 @@ Under each agent row (30px high), its subagents appear as sub-rows: 26px high, 1
 
 - `mods/agents-tree/main.js`, cloned from the shipped `agents` mod with `herdr-app do mod.clone '{"name":"agents","as":"agents-tree"}'`. The sort popup opens `agents-tree` (the clone rewrites that name). Icons come from the shipped `workspace-chrome` mod (`mods/workspace-chrome/*.svg`).
 - Rows: `terminals()` returns each terminal's `records` (`{ "<agentId>": { app, state, title } }`) and `foreground` (`{ pid, argv, cwd }`). `poll()` turns every record into a row `{ address: "<terminal>#<agentId>", name, status, rec: true, parent }`.
+- Progress: `terminals()[].report` is the root 7501 record (`{ app, state, msg, progress }`). `progress(t, report)` returns the bar, or null when there is no numeric `progress` or the state is not working or blocked.
 - Parents: on the first sight of an unknown agent id, `loadMeta()` runs `exec("sh", ["-c", META, "sh", pid], { on: machine })`. `META` reads `sessionId` from `~/.claude/sessions/<pid>.json`, then prints every `~/.claude/projects/*/<sessionId>/subagents/agent-<id>.meta.json` with `grep -H .`. The mod keeps `description` and `parentAgentId` per id. `on` is the address prefix before `/`, or null for this machine.
 - `tree(all, addr)` returns the live `hc run` children of `addr` plus the record rows whose `parent` is `addr`, depth first. `subRow()` skips `on_click` for rows with `rec: true`.
 - Loop: `cx.spawn` runs `poll()`, `cx.notify()`, `cx.sleep(1000)` forever. The shipped 30 s `cx.timer` stays for the "since" times.
@@ -48,6 +51,7 @@ Under each agent row (30px high), its subagents appear as sub-rows: 26px high, 1
 
 - `herdr-app check mods/agents-tree` passes.
 - With `main-tree` shown, start a Claude Code subagent in a herdr terminal: a row with its description and a spinner appears under that agent within about a second, and goes away when it finishes.
+- `hc run --bg --rm sh -c 'printf "\033]7501;state=working:progress=40:app=test\007"; sleep 25'` from an agent terminal: the new sub-row shows a bar 40% full and `40%`.
 - Have that subagent start its own subagent and wait for it: the first one stays as an idle-ring row and the second sits one level below it.
 - A Claude Code session on a remote machine shows its subagent rows under its agent.
 - Clicking a subagent row opens nothing; clicking the agent row still focuses its pane.

@@ -257,7 +257,18 @@ export default class Agents extends View {
         .when(l === "└" || l === "├", el => el.border_b(1.5).rounded_bl(6))))
       .when(Boolean(pic), el => el.child(div().mr(8).child(pic)))
       .child(div().flex_1().truncate().text_color(on ? t.foreground : t.muted).child(k.name || k.template || k.program?.name || k.address))
+      .when(Boolean(this.progress(t, k.report)), (el) => el.child(div().mr(6).child(this.progress(t, k.report))))
       .child(this.status(t, { status: st }, compact));
+  }
+
+  // OSC 7501 progress (0-100), only while working or blocked. Claude Code fills it
+  // from its task list (done / all), on the main session only.
+  progress(t, report) {
+    const p = report?.progress == null ? NaN : Number(report.progress);
+    if (!Number.isFinite(p) || !["working", "blocked"].includes(report.state)) return null;
+    return h_flex().flex_none().gap(4).items_center().text_size(10.5).text_color(t.dim)
+      .child(div().w(24).h(3).rounded(2).bg(t.input).child(div().h_full().rounded(2).bg(t.working).w(Math.round((24 * Math.min(100, Math.max(0, p))) / 100))))
+      .child(`${Math.round(p)}%`);
   }
 
   // compact: a ! for blocked where a header already says "Needs you".
@@ -341,7 +352,9 @@ export default class Agents extends View {
       if (detail.get(a.address) == null && seen[`${a.space_name}\u0000`] > 1) detail.set(a.address, label(a));
     }
 
+    const reports = new Map(all.map((k) => [k.address, k.report]));
     const row = (a, i, subs = []) => {
+      const prog = this.progress(t, reports.get(a.address));
       const pic = icon(a.program, 16, t.foreground);
       const more = detail.get(a.address);
       // An agent on another machine (`vps/t7`) says which.
@@ -410,6 +423,7 @@ export default class Agents extends View {
           .child(div().min_w(0).max_w(full && more ? 120 : 200).truncate().text_color(idle ? t.muted : t.foreground).child(name))
           .when(full && Boolean(more), el => el.child(div().flex_1().min_w(0).truncate().text_color(t.dim).child(`\u00b7 ${more}`))))
         .when(Boolean(machine), el => el.child(div().text_size(10).text_color(t.dim).child(machine)))
+        .when(Boolean(prog), el => el.child(prog))
         .when(subs.length > 0, el => el.child(fold(a, subs)))
         .when(this.hovered === a.address, el => el.child(pin))
         .when(this.hovered !== a.address && Boolean(when), el => el.child(div().flex_none().text_size(11).text_color(t.dim).child(duration(now - when))))
