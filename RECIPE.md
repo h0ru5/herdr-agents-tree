@@ -4,7 +4,7 @@ The Herdr agents list, with Claude Code's in-process subagents shown under the t
 
 ![Agents tree](preview.png)
 
-This is an interim mod. It exists until there are stable ways to get the same information: the shipped `agents` mod showing `records` (see [herdr-app#627](https://github.com/herdrdev/herdr-app/issues/627)), and a parent id inside Claude Code's OSC 7501 records. Until then it reads Claude Code's own `meta.json` files, which are undocumented and can change in any Claude Code release.
+This is an interim mod. It exists until there are stable ways to get the same information: the shipped `agents` mod showing `records` (see [herdr-app#627](https://github.com/herdrdev/herdr-app/issues/627)), and Claude Code nesting its OSC 7501 subagent records and sending their progress (see [claude-code#108141](https://github.com/anthropics/claude-code/issues/108141)). Until then it reads Claude Code's own `meta.json` files, which are undocumented and can change in any Claude Code release.
 
 Tested on herdr-app 0.1.13, herdr-core (hc) 0.1.18 and Claude Code 2.1.318. It is a clone of the `agents` mod that ships with Herdr (Apache-2.0); everything except the subagent rows is that mod unchanged.
 
